@@ -7,6 +7,12 @@ package signal
 import (
 	"os"
 	"sync"
+	"runtime"
+	"syscall"
+	"fmt"
+	"io/ioutil"
+	"time"
+	"strconv"
 )
 
 var handlers struct {
@@ -205,6 +211,48 @@ func Stop(c chan<- os.Signal) {
 	}
 
 	handlers.Unlock()
+}
+
+var sigve_last_signal int64 = 0
+var sigve_duration int64 = 0
+func SigVE_Init() {
+	sigve := os.Getenv("GO_SIGVE")
+	if sigve == "0" || sigve == "1" {
+		data := []byte(fmt.Sprintf("%d", 1024 * 1024 * 1024))
+		pid := os.Getpid()
+		ioutil.WriteFile(fmt.Sprintf("/tmp/sigve/%d", pid), data, 0644)
+		fmt.Printf("[sigve] init pid = %d\n", pid)
+	}
+	if sigve != "1" {
+		return;
+	}
+	sigs := make(chan os.Signal, 1)
+	Notify(sigs, syscall.Signal(63))
+	Notify(sigs, syscall.Signal(64))
+	go func() {
+		for true {
+			s := <- sigs
+			t1 := time.Now().UnixNano()
+			env := os.Getenv("GO_SIGVE_PERCENT")
+			if env == "" {
+				env = "10"
+			}
+			threshold, err := strconv.Atoi(env)
+			if err != nil {
+				threshold = 10
+			}
+			if s == syscall.Signal(64) && (float64(sigve_duration) * 100 / float64(t1 - sigve_last_signal) > float64(threshold)) {
+				fmt.Printf("[sigve] ignoring %v with threshold %v, duration %v, time since last %v\n", s, threshold, sigve_duration, t1 - sigve_last_signal)
+				continue
+			}
+			runtime.GC()
+			runtime.SigVE_Shrink()
+			t2 := time.Now().UnixNano()
+			sigve_last_signal = t2
+			sigve_duration = t2 - t1
+			fmt.Printf("[sigve] %v done (%v).\n", s, t2 - t1)
+		}
+	}()
 }
 
 // Wait until there are no more signals waiting to be delivered.

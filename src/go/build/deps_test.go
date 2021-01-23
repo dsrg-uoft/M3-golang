@@ -164,7 +164,7 @@ var pkgDeps = map[string][]string{
 	"path/filepath":    {"L2", "os", "syscall", "internal/syscall/windows"},
 	"io/ioutil":        {"L2", "os", "path/filepath", "time"},
 	"os/exec":          {"L2", "os", "context", "path/filepath", "syscall"},
-	"os/signal":        {"L2", "os", "syscall"},
+	"os/signal":        {"L2", "os", "syscall", "fmt", "io/ioutil", "time" },
 
 	// OS enables basic operating system functionality,
 	// but not direct use of package syscall, nor os/signal.

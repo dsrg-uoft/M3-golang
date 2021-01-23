@@ -1051,6 +1051,12 @@ var work struct {
 	heap0, heap1, heap2, heapGoal uint64
 }
 
+func SigVE_Shrink() {
+	now := nanotime()
+	mheap_.scavenge(int32(0), uint64(now), uint64(0))
+	print("[sigve] shrink.\n")
+}
+
 // GC runs a garbage collection and blocks the caller until the
 // garbage collection is complete. It may also block the entire
 // program.
