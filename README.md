@@ -1,5 +1,6 @@
 M3 Golang
 =========
-
-To build: `./src/all.bash.
+Original readme at `README.original.md`.
+To build: `./src/all.bash`.
 Distribution is `bin/go`.
+
