@@ -9,6 +9,9 @@ import (
 	"runtime/internal/atomic"
 	"runtime/internal/sys"
 	"unsafe"
+	//"os"
+	//"os/signal"
+	//"syscall"
 )
 
 var buildVersion = sys.TheVersion

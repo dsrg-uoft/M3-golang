@@ -1059,6 +1059,39 @@ func (h *mheap) freeSpanLocked(s *mspan, acctinuse, acctidle bool, unusedsince i
 	} else {
 		h.freeList(s.npages).insert(s)
 	}
+	scavengeSpan(s)
+}
+
+func scavengeSpan(s *mspan) uintptr {
+	var sumreleased uintptr
+	if s.npreleased != s.npages {
+		start := s.base()
+		end := start + s.npages<<_PageShift
+		if physPageSize > _PageSize {
+			// We can only release pages in
+			// physPageSize blocks, so round start
+			// and end in. (Otherwise, madvise
+			// will round them *out* and release
+			// more memory than we want.)
+			start = (start + physPageSize - 1) &^ (physPageSize - 1)
+			end &^= physPageSize - 1
+			if end <= start {
+				// start and end don't span a
+				// whole physical page.
+				return sumreleased
+			}
+		}
+		len := end - start
+		released := len - (s.npreleased << _PageShift)
+		if physPageSize > _PageSize && released == 0 {
+			return sumreleased
+		}
+		memstats.heap_released += uint64(released)
+		sumreleased += released
+		s.npreleased = len >> _PageShift
+		sysUnused(unsafe.Pointer(start), len)
+	}
+	return sumreleased
 }
 
 func (h *mheap) freeList(npages uintptr) *mSpanList {
